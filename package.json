@@ -1,0 +1,21 @@
+{
+  "name": "tutturhedefi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1",
+    "three": "^0.176.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

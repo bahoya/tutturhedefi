@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+/* Tuttur Hedefi - Styling */
+
+body {
+    margin: 0;
+    overflow: hidden; /* Hide scrollbars */
+    font-family: 'Roboto', sans-serif; /* Roboto font */
+    color: #fff; /* Default text color */
+    background-color: #000; /* Fallback background */
+    cursor: default; /* Default cursor */
+    font-weight: 400; /* Default font weight */
+}
+
+canvas {
+    display: block; /* Prevent extra space below canvas */
+    cursor: crosshair; /* Change cursor when over canvas */
+    /* Removed potentially conflicting styles from here */
+}
+
+/* --- Overlays --- */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* Slightly darker overlay */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 100;
+    padding: 20px;
+    box-sizing: border-box;
+    font-weight: 700; /* Make overlay text bolder by default */
+}
+
+/* General Overlay H2 (Pause, Game Over) */
+.overlay h2 {
+    margin-top: 0;
+    color: #00ffea; /* Neon teal */
+    /* text-shadow: 0 0 10px #00ffea; */ /* Removed shadow */
+}
+
+/* Input specific to overlay */
+.overlay input[type="text"] {
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border: 2px solid #fff; /* White border */
+    background-color: #fff; /* White background */
+    color: #000; /* Black text */
+    font-family: inherit; /* Inherit Roboto */
+    font-weight: 400; /* Normal weight for input text */
+    font-size: 1em;
+    outline: none;
+    border-radius: 4px; /* Added rounding */
+}
+
+/* Buttons specific to overlay */
+.overlay button {
+    padding: 12px 25px;
+    font-family: inherit; /* Inherit Roboto */
+    font-weight: 700; /* Bold button text */
+    font-size: 1.1em;
+    background-color: #00ffea; /* Reverted to Teal background */
+    color: #000; /* Black text */
+    border: none;
+    border-radius: 4px; /* Added rounding */
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 5px;
+}
+
+.overlay button:hover:not(:disabled) {
+    background-color: #fff;
+    color: #000;
+    /* box-shadow: 0 0 15px #00ffea; */ /* Removed hover shadow */
+}
+
+.overlay button:disabled {
+    background-color: #555;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+/* Lobby Specific Box */
+#lobbyInfo {
+    background-color: rgba(139, 69, 19, 0.85); /* Brown background */
+    padding: 30px;
+    border-radius: 10px;
+    border: 2px solid #fff; /* White border/glow */
+    /* box-shadow: none; */ /* Ensure no conflicting shadow */
+    width: 90%; /* Limit width */
+    max-width: 450px; /* Max width */
+    box-sizing: border-box; /* Include padding/border in width */
+}
+
+/* Lobby Title */
+#lobbyInfo h2 {
+    color: #fff; /* White title */
+    text-shadow: none; /* Remove shadow */
+    margin-bottom: 20px; /* Add space below title */
+    font-size: 1.8em; /* Make title bigger */
+}
+
+#playerList {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+    max-height: 200px; /* Limit height and make scrollable if needed */
+    overflow-y: auto;
+    font-weight: 400; /* Normal weight for list items */
+}
+
+#playerList li {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 10px 15px; /* Increased padding */
+    margin-bottom: 8px; /* Increased spacing */
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#playerList .status-ready {
+    color: #0f0; /* Green */
+    font-weight: bold;
+}
+
+#playerList .status-waiting {
+    color: #ff0; /* Yellow */
+}
+
+.player-status-text {
+    margin-left: 10px; /* Add space before status text */
+}
+
+#lobbyActions {
+    margin-top: 25px; /* Added margin above the action buttons/input */
+    display: flex; /* Align input and button */
+    justify-content: center; /* Center items */
+    align-items: center; /* Vertically align */
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+#lobbyActions input[type="text"] {
+    margin-right: 10px; /* Space between input and button */
+    margin-bottom: 10px; /* Spacing for wrap */
+    flex-grow: 1; /* Allow input to grow */
+    min-width: 150px;
+}
+
+#lobbyActions button {
+     margin-bottom: 10px; /* Spacing for wrap */
+}
+
+#countdownDisplay {
+    width: 100%; /* Ensure countdown takes full width */
+    margin-top: 15px;
+    font-size: 1.5em;
+    color: #fff; /* Changed from #ff0 (yellow) to white */
+}
+
+/* In-game UI Styles - Kept from previous */
+#scoreboard, #gameStatus, #timer {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.5); /* White border */
+    /* text-shadow: 1px 1px 2px #000; */ /* Removed shadow */
+    font-size: 1.1em;
+    font-weight: 700; /* Bold in-game UI */
+}
+
+#scoreboard {
+    top: 15px;
+    left: 15px;
+    min-width: 150px;
+}
+
+#scoreboard h3 {
+    margin: 0 0 5px 0;
+    color: #fff; /* White header */
+    font-size: 1em;
+    text-transform: uppercase;
+    text-shadow: none; /* Ensure no shadow */
+}
+
+#scoreboard div {
+    margin-bottom: 3px;
+    font-weight: 400; /* Normal weight score lines */
+}
+
+#gameStatus {
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%); /* Center horizontally */
+    min-width: 250px;
+    text-align: center;
+}
+
+#timer {
+    top: 15px;
+    right: 15px;
+}
+
+#crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #fff; /* White crosshair */
+    /* text-shadow: 0 0 5px #00ffea, 0 0 10px #fff; */ /* Removed glow effect */
+    pointer-events: none; /* Make it non-interactive */
+    display: none; /* Hidden by default, shown via JS */
+}
+
+/* Styles for Game Over / Pause Overlays (Reuse .overlay styles) */
+#gameOverOverlay h2 {
+    color: #f44336; /* Red Game Over */
+}
+
+#gameOverScores div {
+    margin: 5px 0;
+    font-size: 1.2em;
+    font-weight: 400; /* Normal weight scores */
+}
+
+#pauseOverlay h2 {
+     color: #ffeb3b; /* Yellow Paused */
+}
+
+/* Turn Notification Styles */
+.turn-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5); /* Initial state: centered, small */
+    font-size: 4em; /* Large font */
+    font-weight: 700;
+    color: #fff; /* White text */
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Text shadow for readability */
+    background-color: rgba(0, 255, 234, 0.8); /* Teal background */
+    color: #000;
+    padding: 20px 40px;
+    border-radius: 10px;
+    z-index: 200; /* Above other UI */
+    opacity: 0; /* Initial state: transparent */
+    pointer-events: none; /* Not interactive */
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease-out; /* Smooth transition for scale and opacity */
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+.turn-notification.show {
+    transform: translate(-50%, -50%) scale(1); /* Animate to full size */
+    opacity: 1; /* Animate to fully visible */
+}
