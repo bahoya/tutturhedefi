@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   // Move camera further back and slightly higher
-  camera.position.set(0, 6, 20); // Increased Z significantly, adjusted Y
+  camera.position.set(0, 6, 50); // Increased Z significantly (from 20 to 50), adjusted Y
   camera.rotation.order = 'YXZ';
   let cameraPitch = 0;
   let cameraYaw = 0;
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const fenceLength = 25; // How long the fences are along Z
   const fenceOffset = 8; // How far from the center X line - DECREASED from 12
-  const fenceStartZ = 0; // Start Z position (closer to targets)
+  const fenceStartZ = 30; // Start Z position - MOVED BACK from 0
   const fenceYPos = 3.5; // Base height on the ground - RAISED from 2.0
   const fenceHeight = 1.5; // NEW variable for fence height
 
