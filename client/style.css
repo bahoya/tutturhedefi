@@ -97,6 +97,12 @@ canvas {
     width: 90%; /* Limit width */
     max-width: 450px; /* Max width */
     box-sizing: border-box; /* Include padding/border in width */
+    /* Default state is handled by #overlay below */
+}
+
+/* Lobby Overlay - Hidden by default */
+#overlay {
+    display: none; /* Start hidden, shown by JS after load */
 }
 
 /* Lobby Title */
@@ -165,7 +171,7 @@ canvas {
     color: #fff; /* Changed from #ff0 (yellow) to white */
 }
 
-/* In-game UI Styles - Kept from previous */
+/* In-game UI Styles - Start Hidden */
 #scoreboard, #gameStatus, #timer {
     position: absolute;
     background-color: rgba(0, 0, 0, 0.6);
@@ -175,6 +181,7 @@ canvas {
     /* text-shadow: 1px 1px 2px #000; */ /* Removed shadow */
     font-size: 1.1em;
     font-weight: 700; /* Bold in-game UI */
+    display: none; /* Hidden by default */
 }
 
 #scoreboard {
@@ -218,7 +225,7 @@ canvas {
     color: #ff0; /* Changed to yellow */
     /* text-shadow: 0 0 5px #00ffea, 0 0 10px #fff; */ /* Removed glow effect */
     pointer-events: none; /* Make it non-interactive */
-    display: none; /* Hidden by default, shown via JS */
+    display: none; /* Hidden by default */
 }
 
 /* Styles for Game Over / Pause Overlays (Reuse .overlay styles) */
@@ -251,6 +258,7 @@ canvas {
     margin-top: 20px;
     overflow: hidden; /* Keep progress bar inside */
     border: 1px solid #fff;
+    /* Initially visible via .overlay */
 }
 
 #progressBar {
