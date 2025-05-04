@@ -74,8 +74,10 @@ function spawnTarget() {
     x: potentialPos.x,
     y: potentialPos.y,
     z: potentialPos.z,
-    dir: Math.random() < 0.5 ? 1 : -1,
-    speed: 0.06 + Math.random() * 0.08 // Increased speed range
+    dir: Math.random() < 0.5 ? 1 : -1, // Horizontal direction
+    speed: 0.06 + Math.random() * 0.08, // Horizontal speed
+    dirY: Math.random() < 0.5 ? 1 : -1, // Vertical direction
+    speedY: 0.03 + Math.random() * 0.05 // Vertical speed (adjust as needed)
   };
 
   targets.push(target);
@@ -397,14 +399,20 @@ setInterval(() => {
   spawnTarget(); // Try to spawn targets if needed
 
   // Move existing targets
+  const targetVerticalBounds = { minY: 6, maxY: 13 }; // Define vertical limits
   targets.forEach(t => {
+    // Horizontal movement
     t.x += t.dir * t.speed;
-    // Make movement bounds slightly larger so they go off-screen a bit
     if (t.x > 7 || t.x < -7) {
         t.dir *= -1;
-        t.x = Math.max(-7, Math.min(7, t.x)); // Clamp to prevent getting stuck far off
-        // Optional: Randomize y position slightly when changing direction?
-        // t.y = 1 + Math.random() * 3;
+        t.x = Math.max(-7, Math.min(7, t.x));
+    }
+
+    // Vertical movement
+    t.y += t.dirY * t.speedY;
+    if (t.y > targetVerticalBounds.maxY || t.y < targetVerticalBounds.minY) {
+        t.dirY *= -1; // Reverse vertical direction
+        t.y = Math.max(targetVerticalBounds.minY, Math.min(targetVerticalBounds.maxY, t.y)); // Clamp position
     }
 
   });
