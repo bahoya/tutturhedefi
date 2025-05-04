@@ -12,7 +12,8 @@ import { AudioListener, AudioLoader, Audio } from 'three';
 document.addEventListener('DOMContentLoaded', () => {
   console.log("DOM Loaded, initializing script...");
 
-  const socket = io(); // Define socket inside DOMContentLoaded
+  // Connect to the deployed Render server
+  const socket = io('https://tutturhedefi.onrender.com'); // <<< UPDATED with Render URL
 
   // Overlay elements
   const overlay = document.getElementById('overlay');
