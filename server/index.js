@@ -41,8 +41,8 @@ function spawnTarget() {
     attempts++;
     // Generate potential position
     potentialPos.x = -7 + Math.random() * 14;
-    potentialPos.y = 7 + Math.random() * 5;  // Yeni aralık: 7 ile 12 arası (was 5-10)
-    potentialPos.z = -16 - Math.random() * 2; // Range -16 to -18 (Moved back by 15)
+    potentialPos.y = 5 + Math.random() * 5;  // New Y range: 5 to 10 (was 7-12)
+    potentialPos.z = -10 - Math.random() * 4; // New Z range: -10 to -14 (was -16 to -18)
 
     // Check distance to existing targets
     let tooClose = false;
@@ -431,7 +431,7 @@ setInterval(() => {
   spawnTarget(); // Try to spawn targets if needed
 
   // Move existing targets
-  const targetVerticalBounds = { minY: 6, maxY: 13 }; // Define vertical limits
+  const targetVerticalBounds = { minY: 4, maxY: 11 }; // Adjust vertical bounds to match spawning: ~4 to ~11 (was 6-13)
   targets.forEach(t => {
     // Horizontal movement
     t.x += t.dir * t.speed;

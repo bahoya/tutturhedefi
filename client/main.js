@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   // Move camera further back and slightly higher
-  camera.position.set(0, 15, 50); // Increased z from 30 to 50, y from 10 to 15
+  camera.position.set(0, 10, 50); // Lowered y from 15 back to 10, kept z at 50
   camera.rotation.order = 'YXZ';
   let cameraPitch = 0;
   let cameraYaw = 0;
