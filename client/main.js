@@ -120,15 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(renderer.domElement);
 
   // --- Pointer Lock Triggering --- 
-  // Flag to track if the first click to lock has happened
+  // Flag to track if the first click to lock has happened (still useful? maybe not)
   let firstClickLocked = false; 
   renderer.domElement.addEventListener('click', () => {
-       // Request lock ONLY on first click when game/player is PLAYING and not already locked
-       if (!firstClickLocked && currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && document.pointerLockElement !== renderer.domElement) {
-           console.log("[Client] First canvas click while PLAYING. Requesting pointer lock on canvas...");
-           renderer.domElement.requestPointerLock();
-           firstClickLocked = true; // Set flag so subsequent clicks don't re-request
-           // Hide pause menu if it was visible (e.g., after ESC)
+       // Always attempt lock on canvas click if game is playing and not already locked
+       if (currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && document.pointerLockElement !== renderer.domElement) { 
+           console.log("[Client] Canvas click while PLAYING. Requesting pointer lock on canvas...");
+           renderer.domElement.requestPointerLock(); // Request lock on canvas
+           // firstClickLocked = true; // Not strictly needed now?
+           // Hide pause menu if it was visible (e.g., after ESC or Resume)
            pauseOverlay.style.display = 'none';
        }
    });
@@ -671,11 +671,11 @@ document.addEventListener('DOMContentLoaded', () => {
    resumeBtn.addEventListener('click', () => {
        console.log("[Client] Resume button clicked.");
        if (currentGameState === 'PLAYING') {
-           console.log("[Client] Game is PLAYING. Hiding pause overlay and requesting lock on canvas...");
-           pauseOverlay.style.display = 'none';
+           console.log("[Client] Game is PLAYING. Hiding pause overlay.");
+           pauseOverlay.style.display = 'none'; // Just hide overlay
            setGameUIVisibility(true); // Show game UI again
-           renderer.domElement.requestPointerLock();
-           firstClickLocked = true; // Ensure subsequent canvas clicks don't re-request
+           // DO NOT request pointer lock here
+           firstClickLocked = false; // Allow subsequent canvas click to lock pointer
        } else {
            console.log(`[Client] Resume ignored: Game state is ${currentGameState}`);
        }
