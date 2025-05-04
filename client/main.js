@@ -102,6 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const defaultFov = 75;
   const zoomedFov = 40;
   const zoomSpeed = 5.0; // Adjust for faster/slower zoom animation
+  const gravity = -3.0; // RE-ADDED gravity effect for gameplay scale
+  // Shooting Cooldown variables
+  const shootCooldown = 0.5; // Seconds between shots
+  let lastShotTime = 0;
 
   // --- Three.js Setup ---
   console.log("Setting up Three.js...");
@@ -764,6 +768,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (document.pointerLockElement === renderer.domElement && currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && myTurn) {
 
            console.log("Firing shot!");
+
+           // --- Cooldown Check ---
+           const currentTime = performance.now() / 1000; // Get time in seconds
+           if (currentTime - lastShotTime < shootCooldown) {
+               console.log("Cooldown active, shot ignored.");
+               return; // Exit if cooldown is active
+           }
+           lastShotTime = currentTime; // Update last shot time
+           // ----------------------
 
            // --- Raycast to find hit target ID and Points ---
            let hitTargetId = null;
