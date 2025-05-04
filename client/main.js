@@ -934,20 +934,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
               // Collision Detection - VISUAL ONLY - Does NOT emit shoot anymore
               projectileRaycaster.set(projectileMesh.position, velocity.clone().normalize());
-              const intersects = projectileRaycaster.intersectObjects(targetMeshes);
+              const intersects = projectileRaycaster.intersectObjects(targetMeshes, true); // Recursive check
               let visualHitDetected = false;
               if (intersects.length > 0 && intersects[0].distance <= moveDistance.length()) {
-                 // Optional: Add visual effect on client-side detected hit
-                 // e.g., spark particles at intersects[0].point
-                 visualHitDetected = true; // Remove projectile visually on hit
+                  visualHitDetected = true; // Visual hit detected
               }
 
-              // Update position or remove projectile
-              if (visualHitDetected || projectileMesh.position.length() > 100) { // Remove if visually hit or too far
+              // Update or remove projectile
+              if (visualHitDetected) {
+                  // Remove projectile immediately on visual hit
                   scene.remove(projectileMesh);
                   projectiles.splice(i, 1);
+                  // console.log("Visual projectile removed due to hit."); // Optional log
               } else {
-                  projectileMesh.position.copy(newPosition);
+                  // No visual hit, check other removal conditions (distance, height)
+                  if (projectileMesh.position.length() > 200 || newPosition.y < -5) { 
+                      scene.remove(projectileMesh);
+                      projectiles.splice(i, 1);
+                      // console.log("Visual projectile removed due to distance or height."); // Optional log
+                  } else {
+                      // No hit and still within bounds, update position
+                      projectileMesh.position.copy(newPosition);
+                  }
               }
            }
     }
