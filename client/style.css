@@ -222,7 +222,7 @@ canvas {
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 24px;
-    color: #ff0; /* Changed to yellow */
+    color: #aaaaaa; /* Changed to grey */
     /* text-shadow: 0 0 5px #00ffea, 0 0 10px #fff; */ /* Removed glow effect */
     pointer-events: none; /* Make it non-interactive */
     display: none; /* Hidden by default */
