@@ -409,14 +409,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
    }
 
-  // Join game button click - NO LONGER requests lock
+  // Join game button click - Now also unlocks audio context
    joinBtn.addEventListener('click', () => {
        const username = usernameInput.value.trim();
-       if (!username) return alert('Please enter a username');
+       if (!username) return alert('Kullanıcı adı girin!'); // Translated alert
        console.log("Join button clicked, emitting joinGame");
        socket.emit('joinGame', username);
        usernameInput.style.display = 'none';
        joinBtn.style.display = 'none';
+
+       // <<< Unlock Audio Context >>>
+       if (listener && listener.context.state === 'suspended') {
+            listener.context.resume();
+            console.log("AudioContext resumed on user interaction.");
+       }
+       // Play and immediately stop a sound to ensure playback is allowed
+       // (Use a short sound if available, or background music briefly)
+       if (backgroundMusic && !backgroundMusic.isPlaying) {
+            console.log("Attempting to unlock audio playback...");
+           try {
+               // Play might throw an error if context is still locked, though resume should handle it.
+               // A short, silent buffer could also be used here.
+                backgroundMusic.play();
+                backgroundMusic.stop(); // Stop immediately after starting
+                console.log("Audio playback likely unlocked.");
+           } catch (error) {
+               console.error("Error attempting to unlock audio:", error);
+           }
+       }
+       // <<< End Unlock Audio Context >>>
    });
 
   // Ready button click
