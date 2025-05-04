@@ -42,7 +42,7 @@ function spawnTarget() {
     // Generate potential position
     potentialPos.x = -7 + Math.random() * 14;
     potentialPos.y = 5 + Math.random() * 5;  // Range 5 to 10
-    potentialPos.z = -31 - Math.random() * 2; // Range -31 to -33 (Moved back by 30)
+    potentialPos.z = -16 - Math.random() * 2; // Range -16 to -18 (Moved back by 15)
 
     // Check distance to existing targets
     let tooClose = false;
