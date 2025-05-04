@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   // Move camera further back and slightly higher
-  camera.position.set(0, 6, 25); // Z position set to 25 (was 35)
+  camera.position.set(0, 15, 50); // Increased z from 30 to 50, y from 10 to 15
   camera.rotation.order = 'YXZ';
   let cameraPitch = 0;
   let cameraYaw = 0;
@@ -132,15 +132,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // Flag to track if the first click to lock has happened (still useful? maybe not)
   let firstClickLocked = false; 
   renderer.domElement.addEventListener('click', () => {
+       console.log(`[Client] Canvas clicked. State: ${currentGameState}, Status: ${myPlayerStatus}, Pointer Locked: ${document.pointerLockElement === renderer.domElement}`); // <<< Add comprehensive log
        // Always attempt lock on canvas click if game is playing and not already locked
        if (currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && document.pointerLockElement !== renderer.domElement) { 
-           console.log("[Client] Canvas click while PLAYING. Requesting pointer lock on canvas (with timeout)...");
+           console.log("[Client] Conditions met! Requesting pointer lock on canvas (with timeout)..."); // <<< Add log here
            // Use setTimeout to ensure the request is made after the current event stack clears
            setTimeout(() => {
-               renderer.domElement.requestPointerLock(); // Request lock on canvas
+               console.log("[Client] Inside setTimeout: Attempting requestPointerLock()"); // <<< Add log here
+               try { // <<< Add try...catch
+                    renderer.domElement.requestPointerLock(); // Request lock on canvas
+               } catch (e) {
+                    console.error("[Client] Error during requestPointerLock:", e);
+               }
            }, 0);
            // Hide pause menu if it was visible (e.g., after ESC or Resume)
            pauseOverlay.style.display = 'none';
+       } else {
+            console.log("[Client] Conditions NOT met for pointer lock request."); // <<< Add log here
        }
    });
 
@@ -778,53 +786,6 @@ document.addEventListener('DOMContentLoaded', () => {
            lastShotTime = currentTime; // Update last shot time
            // ----------------------
 
-           // --- Raycast to find hit target ID and Points ---
-           let hitTargetId = null;
-           let hitPoints = 0; // Default points for miss or unknown hit
-           aimRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera); // Ray from screen center
-           const targetMeshesForRaycast = [];
-           Object.values(targets).forEach(targetData => {
-               if (targetData && targetData.mesh) {
-                   // Add the main group mesh for intersection test
-                   targetMeshesForRaycast.push(targetData.mesh);
-               }
-           });
-
-           const intersects = aimRaycaster.intersectObjects(targetMeshesForRaycast, true); // true for recursive
-
-           if (intersects.length > 0) {
-               const intersectedObject = intersects[0].object; // The specific part hit (e.g., bullseye mesh)
-               let parentGroup = intersectedObject;
-
-               // Traverse up to find the main group that has the ID and check points on the way
-               while (parentGroup && parentGroup.type !== 'Scene') {
-                   if (parentGroup.userData.id) { // Found the main target group
-                       hitTargetId = parentGroup.userData.id;
-                       // Get points from the originally intersected object
-                       if (intersectedObject.userData.points) {
-                            hitPoints = intersectedObject.userData.points;
-                       } else {
-                            console.warn("Hit object part has no points defined, defaulting to 1", intersectedObject.name);
-                            hitPoints = 1; // Fallback points if specific part has no points
-                       }
-                       console.log(`Raycast hit target ID: ${hitTargetId}, Part: ${intersectedObject.name}, Points: ${hitPoints}`);
-                       break; // Exit loop once ID is found
-                   }
-                   parentGroup = parentGroup.parent;
-               }
-
-               if (!hitTargetId) {
-                   // This case might happen if the hierarchy is unexpected
-                   console.log("Raycast hit an object, but couldn't find parent group with ID.", intersectedObject);
-                   // Optionally, assign default points if a hit is detected but ID/points fail
-                   // hitPoints = 1;
-               }
-           }
-
-           // --- Send shoot event with target ID and points ---
-           console.log(`[Client] Sending shoot event. TargetID: ${hitTargetId}, Points: ${hitPoints}`);
-           socket.emit('shoot', { targetId: hitTargetId, points: hitPoints }); // Send ID and points
-
            // Play Shoot Sound
            if (shootSound && shootSound.isPlaying) {
                 shootSound.stop(); // Stop previous instance if rapid firing
@@ -833,33 +794,32 @@ document.addEventListener('DOMContentLoaded', () => {
                shootSound.play();
            }
 
-           // --- Visual projectile from CAMERA --- <- RE-ENABLED
-           // /* <- Removed comment start
-           // 1. Determine Target Point (where the player is aiming)
+           // --- Visual projectile creation (with initial velocity) ---
+           // 1. Determine Aim Direction
            aimRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera); // Ray already set above, reuse direction
            const worldDirection = aimRaycaster.ray.direction;
-           // Define a target point far away in the aiming direction
-            const targetPoint = new THREE.Vector3();
-            targetPoint.copy(aimRaycaster.ray.origin).addScaledVector(worldDirection, 100); // 100 units away
 
            // 2. Get Start Position (Camera Position)
            const startPosition = camera.position.clone(); // Start from camera
 
            // 3. Create Projectile Mesh at Start Position
-           const projectileSpeed = 60;
+           const projectileSpeed = 70; // Increased speed slightly
            const projectileGeo = new THREE.SphereGeometry(0.04, 8, 8); // Reduced radius from 0.05
            const projectileMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Changed color to black
            const projectileMesh = new THREE.Mesh(projectileGeo, projectileMat);
            projectileMesh.position.copy(startPosition); // Use camera position
 
-           // 4. Calculate Velocity towards Target Point from Start Position
+           // 4. Calculate INITIAL Velocity in Aim Direction
            const velocity = new THREE.Vector3();
-           velocity.subVectors(targetPoint, startPosition).normalize().multiplyScalar(projectileSpeed);
+           // Start with the camera's aim direction and speed
+           velocity.copy(worldDirection).multiplyScalar(projectileSpeed);
 
-           // 5. Add to scene and tracking array
+           // 5. Add to scene and tracking array (velocity will be modified by gravity in animate)
            scene.add(projectileMesh);
-           projectiles.push({ mesh: projectileMesh, velocity: velocity });
-           // */ <- Removed comment end
+           projectiles.push({ mesh: projectileMesh, velocity: velocity }); // Store mesh and initial velocity
+
+           // <<< SEND SHOT FIRED EVENT TO SERVER >>>
+           socket.emit('shotFired');
 
        } else {
            // ... (ignore logging)
@@ -942,29 +902,74 @@ document.addEventListener('DOMContentLoaded', () => {
               const projData = projectiles[i];
               const projectileMesh = projData.mesh;
               const velocity = projData.velocity;
-              const moveDistance = velocity.clone().multiplyScalar(delta);
-              const newPosition = projectileMesh.position.clone().add(moveDistance);
 
-              // Collision Detection - VISUAL ONLY - Does NOT emit shoot anymore
-              projectileRaycaster.set(projectileMesh.position, velocity.clone().normalize());
-              const intersects = projectileRaycaster.intersectObjects(targetMeshes, true); // Recursive check
-              let visualHitDetected = false;
-              if (intersects.length > 0 && intersects[0].distance <= moveDistance.length()) {
-                  visualHitDetected = true; // Visual hit detected
+              // <<< APPLY GRAVITY >>>
+              velocity.y += gravity * delta; // Gravity affects vertical velocity
+
+              const oldPosition = projectileMesh.position.clone();
+              const moveDistanceVec = velocity.clone().multiplyScalar(delta);
+              const newPosition = oldPosition.clone().add(moveDistanceVec);
+              const moveDistance = moveDistanceVec.length();
+
+              // <<< PHYSICS-BASED COLLISION DETECTION >>>
+              let collisionDetected = false;
+              if (targetMeshes.length > 0 && moveDistance > 0.01) { // Only check if moving and targets exist
+                  projectileRaycaster.set(oldPosition, velocity.clone().normalize()); // Ray from old position in direction of velocity
+                  const intersects = projectileRaycaster.intersectObjects(targetMeshes, true); // Recursive check
+
+                  if (intersects.length > 0 && intersects[0].distance <= moveDistance) {
+                      collisionDetected = true;
+                      const intersectedObject = intersects[0].object;
+                      let parentGroup = intersectedObject;
+                      let hitTargetId = null;
+                      let hitPoints = 0;
+
+                      // Find parent group with ID and get points
+                      while (parentGroup && parentGroup.type !== 'Scene') {
+                          if (parentGroup.userData.id) {
+                              hitTargetId = parentGroup.userData.id;
+                              if (intersectedObject.userData.points) {
+                                  hitPoints = intersectedObject.userData.points;
+                              } else {
+                                  console.warn("Projectile hit object part with no points, defaulting to 1", intersectedObject.name);
+                                  hitPoints = 1;
+                              }
+                              console.log(`[Client] Projectile Hit! TargetID: ${hitTargetId}, Part: ${intersectedObject.name}, Points: ${hitPoints}`);
+
+                              // <<< SEND HIT TO SERVER >>>
+                              if (currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && myTurn) { // Only send if it's our valid turn
+                                  console.log(`[Client] Sending projectileHit event. TargetID: ${hitTargetId}, Points: ${hitPoints}`);
+                                  socket.emit('projectileHit', { targetId: hitTargetId, points: hitPoints });
+                              } else {
+                                  console.log("[Client] Projectile hit detected, but not sending to server (not playing/myTurn).");
+                              }
+
+                              // Play Hit Sound (if available)
+                              if (hitSound && hitSound.isPlaying) hitSound.stop();
+                              if (hitSound) hitSound.play();
+
+                              break; // Exit loop
+                          }
+                          parentGroup = parentGroup.parent;
+                      }
+                      if (!hitTargetId) {
+                          console.log("[Client] Projectile hit detected, but couldn't find parent group ID.", intersectedObject);
+                          // Maybe play a generic impact sound?
+                      }
+                  }
               }
 
               // Update or remove projectile
-              if (visualHitDetected) {
-                  // Remove projectile immediately on visual hit
+              if (collisionDetected) {
+                  // Remove projectile on collision
                   scene.remove(projectileMesh);
                   projectiles.splice(i, 1);
-                  // console.log("Visual projectile removed due to hit."); // Optional log
               } else {
-                  // No visual hit, check other removal conditions (distance, height)
-                  if (projectileMesh.position.length() > 200 || newPosition.y < -5) { 
+                  // No collision, check other removal conditions (distance, height)
+                  // Increased range slightly, adjust height threshold
+                   if (projectileMesh.position.length() > 250 || newPosition.y < -10) {
                       scene.remove(projectileMesh);
                       projectiles.splice(i, 1);
-                      // console.log("Visual projectile removed due to distance or height."); // Optional log
                   } else {
                       // No hit and still within bounds, update position
                       projectileMesh.position.copy(newPosition);

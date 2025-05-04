@@ -277,62 +277,94 @@ io.on('connection', (socket) => {
        resetGame();
    });
 
-  socket.on('shoot', (data) => {
+  // <<< NEW 'shotFired' HANDLER >>>
+  socket.on('shotFired', () => {
     // Check if it's the player's turn and game is playing
-    if (gameState !== 'PLAYING' || socket.id !== playerTurnOrder[currentPlayerIndex]) {
-        return socket.emit('feedback', { message: "Not your turn or game not active!" });
+    if (gameState !== 'PLAYING' || !playerTurnOrder || playerTurnOrder.length === 0 || socket.id !== playerTurnOrder[currentPlayerIndex]) {
+        return socket.emit('feedback', { message: "Atış sırası sizde değil veya oyun aktif değil!" }); // "Not your turn or game not active!"
     }
     if (remainingShots <= 0) {
-        return socket.emit('feedback', { message: "Out of shots!" });
+        return socket.emit('feedback', { message: "Atış hakkınız bitti!" }); // "Out of shots!"
     }
 
     const playerName = players[socket.id]?.username || socket.id;
-    const hitTargetId = data ? data.targetId : null;
-    const pointsFromClient = (data && typeof data.points === 'number') ? data.points : 0; // Get points from client, default to 0
-    console.log(`[Server] Received shoot from ${playerName}. Target ID: ${hitTargetId}, Points Sent: ${pointsFromClient}`); // Log received data
+    console.log(`[Server] Received shotFired event from ${playerName}.`);
 
+    // Decrement shots and check for turn end
     remainingShots--;
-    let scoreGained = 0;
-
-    if (hitTargetId && pointsFromClient > 0) { // Only process if a target ID was hit and points were potentially scored
-        const targetIndex = targets.findIndex(t => t.id === hitTargetId);
-        console.log(`[Server] Target search result for ID ${hitTargetId}: Index = ${targetIndex}`); // Log findIndex result
-
-        if (targetIndex !== -1) {
-            console.log(`[Server] Player ${playerName} HIT target ${hitTargetId}`);
-            // Target exists, register hit using points from client
-            scoreGained = pointsFromClient; // Use the points value sent by the client
-            players[socket.id].score += scoreGained;
-            console.log(`[Server] Score updated for ${playerName}: +${scoreGained} (Total: ${players[socket.id].score})`); // Log score update
-
-            // Remove target
-            const removedTarget = targets.splice(targetIndex, 1)[0];
-
-            // Send hit feedback to the player who shot
-            console.log(`[Server] Emitting hitFeedback to ${playerName} for target ${hitTargetId}, Points: ${scoreGained}`); // Log before emitting
-            socket.emit('hitFeedback', { points: scoreGained, hitPosition: removedTarget }); // Send actual points scored
-
-            // Broadcast score and target updates
-            io.emit('scoreUpdate', players); // Send updated scores to everyone
-            io.emit('targetUpdate', targets); // Update targets for everyone
-
-        } else {
-            console.log(`[Server] Player ${playerName} shot at non-existent target ${hitTargetId} (Points ignored)`);
-             socket.emit('feedback', { message: "Iska!" });
-        }
-    } else {
-        // Handle miss (no target ID sent or points were 0)
-        console.log(`[Server] Player ${playerName} missed (TargetID: ${hitTargetId}, Points: ${pointsFromClient})`);
-        socket.emit('feedback', { message: "Iska!" });
-    }
+    console.log(`[Server] ${playerName} has ${remainingShots} shots left this turn.`);
 
     // Check if turn ends
     if (remainingShots <= 0) {
         console.log(`[Server] Turn ended for ${playerName}. Calling nextTurn.`);
-        nextTurn();
+        nextTurn(); // Switch to next player
     } else {
-        // Update remaining shots for the current player
+        // Only update remaining shots for the current player (and everyone for UI update)
         io.emit('gameStateUpdate', getGameStateData());
+    }
+  });
+
+  // Handler for when a projectile physically hits a target (sent from client)
+  // const POINTS_PER_HIT = 5; // Vuruş başına verilecek sabit puan (Variable already exists below)
+
+  socket.on('projectileHit', (data) => {
+    // Basic validation: Is game playing and data valid?
+    if (gameState !== 'PLAYING' || !data || typeof data.targetId === 'undefined') {
+        // Added points check - make sure points are sent
+        if (gameState !== 'PLAYING') console.log(`[Server] projectileHit ignored: Game not PLAYING.`);
+        else console.log(`[Server] projectileHit ignored: Invalid data from ${socket.id}:`, data);
+        return;
+    }
+
+    const targetId = data.targetId;
+    const points = data.points || 0; // Get points from client data, default to 0
+    const playerId = socket.id;
+
+    // Stop if player disconnected or not found
+    if (!players[playerId]) {
+        console.log(`[Server] projectileHit ignored: Player ${playerId} not found.`);
+        return;
+    }
+    const playerName = players[playerId].username || playerId;
+
+    // Find the target in the server's list
+    const targetIndex = targets.findIndex(t => t.id === targetId);
+
+    // Check if target exists
+    if (targetIndex !== -1) {
+        // Target found! Process the hit.
+        // Note: We no longer check if it's the player's turn here, as the hit is physics-based.
+        // Any active projectile from any player could potentially hit.
+        // However, scoring should likely only happen if it *was* their turn when they shot?
+        // For simplicity now, any hit scores points for the owner of the projectile (socket.id)
+        console.log(`[Server] projectileHit registered for target ${targetId} by ${playerName}.`);
+
+        const removedTarget = targets[targetIndex]; // Details of removed target (optional for feedback)
+
+        // --- Server-Side Scoring --- <<< USE POINTS FROM CLIENT >>>
+        let scoreGained = points; // Use points determined by the client's hit detection
+        players[playerId].score += scoreGained;
+        console.log(`[Server] Score updated for ${playerName}: +${scoreGained} (Total: ${players[playerId].score})`);
+
+        // Remove the target from the array
+        targets.splice(targetIndex, 1);
+
+        // --- Broadcast Updates ---
+        // Send updated target list to everyone (target removed)
+        io.emit('targetUpdate', targets);
+
+        // Send hit feedback to the player who hit
+        console.log(`[Server] Sending hitFeedback to ${playerName} for target ${targetId}, Points: ${scoreGained}`);
+        socket.emit('hitFeedback', {
+             points: scoreGained
+        });
+
+        // Broadcast the general state update so UIs refresh scores
+        io.emit('gameStateUpdate', getGameStateData());
+
+    } else {
+        // Target not found (maybe another projectile hit it fractionally earlier?)
+        console.log(`[Server] projectileHit for non-existent target ${targetId} by ${playerName} (ignored).`);
     }
   });
 
