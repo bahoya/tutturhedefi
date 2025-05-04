@@ -125,9 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderer.domElement.addEventListener('click', () => {
        // Always attempt lock on canvas click if game is playing and not already locked
        if (currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && document.pointerLockElement !== renderer.domElement) { 
-           console.log("[Client] Canvas click while PLAYING. Requesting pointer lock on canvas...");
-           renderer.domElement.requestPointerLock(); // Request lock on canvas
-           // firstClickLocked = true; // Not strictly needed now?
+           console.log("[Client] Canvas click while PLAYING. Requesting pointer lock on canvas (with timeout)...");
+           // Use setTimeout to ensure the request is made after the current event stack clears
+           setTimeout(() => {
+               renderer.domElement.requestPointerLock(); // Request lock on canvas
+           }, 0);
            // Hide pause menu if it was visible (e.g., after ESC or Resume)
            pauseOverlay.style.display = 'none';
        }
@@ -231,35 +233,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // Adjust fog to account for larger terrain and potential height
   scene.fog = new THREE.Fog(0x87CEEB, 70, 180); // Start further, end further
 
-  // --- Fences --- REMOVED
-  /*
-  // Adjust fence Y position slightly based on potential terrain height near origin?
-  // For simplicity, keep Y=0 for now, they might float/sink slightly.
-  function createFenceSection(length = 10, height = 0.8, postInterval = 2) {
+  // --- Fences --- // RE-ENABLED and MODIFIED
+  // Function to create a fence section along the Z-axis
+  function createFenceSection(length = 15, height = 0.8, postInterval = 2, woodColor = 0x8B4513) {
       const fenceGroup = new THREE.Group();
       const postGeo = new THREE.BoxGeometry(0.1, height, 0.1);
-      const postMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown
-      const plankGeo = new THREE.BoxGeometry(postInterval, 0.1, 0.05);
-      const plankMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Saddle Brown (using hex)
+      const postMat = new THREE.MeshLambertMaterial({ color: woodColor });
+      const plankGeo = new THREE.BoxGeometry(0.05, 0.1, postInterval); // Plank dimensions adjusted for Z-axis alignment
+      const plankMat = new THREE.MeshLambertMaterial({ color: woodColor });
 
       const numSections = Math.ceil(length / postInterval);
+      const startZ = -length / 2; // Center the fence segment
 
       for (let i = 0; i <= numSections; i++) {
+          const currentZ = startZ + i * postInterval;
           // Post
           const post = new THREE.Mesh(postGeo, postMat);
-          post.position.set(i * postInterval - length / 2, height / 2, 0);
+          post.position.set(0, height / 2, currentZ);
           post.castShadow = true;
           fenceGroup.add(post);
 
           // Planks (except after last post)
           if (i < numSections) {
+              const plankZ = currentZ + postInterval / 2;
               const plank1 = new THREE.Mesh(plankGeo, plankMat);
-              plank1.position.set(post.position.x + postInterval / 2, height * 0.7, 0.025);
+              // Position planks between posts along Z, slightly offset on X
+              plank1.position.set(0.025, height * 0.7, plankZ);
               plank1.castShadow = true;
               fenceGroup.add(plank1);
 
               const plank2 = new THREE.Mesh(plankGeo, plankMat);
-              plank2.position.set(post.position.x + postInterval / 2, height * 0.3, 0.025);
+              plank2.position.set(0.025, height * 0.3, plankZ);
               plank2.castShadow = true;
               fenceGroup.add(plank2);
           }
@@ -267,18 +271,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return fenceGroup;
   }
 
-  const fenceLength = 50; // How long the fences are
-  const fenceDistance = 8; // How far from the center line
+  const fenceLength = 25; // How long the fences are along Z
+  const fenceOffset = 8; // How far from the center X line - DECREASED from 12
+  const fenceStartZ = 0; // Start Z position (closer to targets)
+  const fenceYPos = 3.5; // Base height on the ground - RAISED from 2.0
+  const fenceHeight = 1.5; // NEW variable for fence height
 
-  const fenceLeft = createFenceSection(fenceLength);
-  fenceLeft.position.set(0, 0.5, -fenceDistance); // Raised Y from 0 to 0.5
+  // Left Fence
+  const fenceLeft = createFenceSection(fenceLength, fenceHeight);
+  fenceLeft.position.set(-fenceOffset, fenceYPos, fenceStartZ + fenceLength / 2);
   scene.add(fenceLeft);
 
-  const fenceRight = createFenceSection(fenceLength);
-  fenceRight.position.set(0, 0.5, fenceDistance); // Raised Y from 0 to 0.5
+  // Right Fence
+  const fenceRight = createFenceSection(fenceLength, fenceHeight);
+  fenceRight.position.set(fenceOffset, fenceYPos, fenceStartZ + fenceLength / 2);
   scene.add(fenceRight);
-  console.log("Fences created.");
-  */
+
+  console.log("Fences created along Z-axis.");
 
   // Function to create a target mesh with different scoring zones
   function createTargetMesh() {
