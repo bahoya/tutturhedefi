@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Zoom variables
   let isZooming = false;
   const defaultFov = 75;
-  const zoomedFov = 30;
+  const zoomedFov = 40;
   const zoomSpeed = 5.0; // Adjust for faster/slower zoom animation
 
   // --- Three.js Setup ---
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   // Move camera further back and slightly higher
-  camera.position.set(0, 6, 35); // Z position set to 35 (was 50)
+  camera.position.set(0, 6, 25); // Z position set to 25 (was 35)
   camera.rotation.order = 'YXZ';
   let cameraPitch = 0;
   let cameraYaw = 0;
@@ -242,9 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to create a fence section along the Z-axis
   function createFenceSection(length = 15, height = 0.8, postInterval = 2, woodColor = 0x8B4513) {
       const fenceGroup = new THREE.Group();
-      const postGeo = new THREE.BoxGeometry(0.15, height, 0.15); // Increased thickness (X and Z)
+      const postGeo = new THREE.BoxGeometry(0.2, height, 0.2); // Increased thickness again (X and Z)
       const postMat = new THREE.MeshLambertMaterial({ color: woodColor });
-      const plankGeo = new THREE.BoxGeometry(0.08, 0.1, postInterval); // Increased thickness (X), adjusted for Z-axis alignment
+      const plankGeo = new THREE.BoxGeometry(0.1, 0.12, postInterval); // Increased thickness (X and Y), adjusted for Z-axis alignment
       const plankMat = new THREE.MeshLambertMaterial({ color: woodColor });
 
       const numSections = Math.ceil(length / postInterval);
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const fenceLength = 40; // How long the fences are along Z - INCREASED from 25
   const fenceOffset = 6; // How far from the center X line - DECREASED from 8
-  const fenceStartZ = 15; // Start Z position - Set to 15 (was 30)
+  const fenceStartZ = 5; // Start Z position - MOVED FORWARD to 5 (was 15)
   const fenceYPos = 3.5; // Base height on the ground - RAISED from 2.0
   const fenceHeight = 1.5; // NEW variable for fence height
 
