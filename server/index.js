@@ -75,7 +75,7 @@ function spawnTarget() {
     y: potentialPos.y,
     z: potentialPos.z,
     dir: Math.random() < 0.5 ? 1 : -1,
-    speed: 0.03 + Math.random() * 0.06
+    speed: 0.06 + Math.random() * 0.08 // Increased speed range
   };
 
   targets.push(target);

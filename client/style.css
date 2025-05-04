@@ -215,7 +215,7 @@ canvas {
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 24px;
-    color: #fff; /* White crosshair */
+    color: #ff0; /* Changed to yellow */
     /* text-shadow: 0 0 5px #00ffea, 0 0 10px #fff; */ /* Removed glow effect */
     pointer-events: none; /* Make it non-interactive */
     display: none; /* Hidden by default, shown via JS */
@@ -234,6 +234,36 @@ canvas {
 
 #pauseOverlay h2 {
      color: #ffeb3b; /* Yellow Paused */
+}
+
+/* Loading Screen Styles */
+#loadingOverlay {
+    z-index: 300; /* Ensure it's above everything else */
+    /* Overlay styles already applied via .overlay class */
+}
+
+#progressBarContainer {
+    width: 80%;
+    max-width: 400px;
+    height: 30px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    margin-top: 20px;
+    overflow: hidden; /* Keep progress bar inside */
+    border: 1px solid #fff;
+}
+
+#progressBar {
+    width: 0%; /* Start at 0% */
+    height: 100%;
+    background-color: #00ffea; /* Teal progress bar */
+    border-radius: 15px;
+    transition: width 0.2s ease-out; /* Smooth progress update */
+}
+
+#progressText {
+    margin-top: 15px;
+    font-size: 1.2em;
 }
 
 /* Turn Notification Styles */

@@ -39,6 +39,42 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // --- Loading Manager --- Start
+  const loadingManager = new THREE.LoadingManager();
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+
+  if (!loadingOverlay || !progressBar || !progressText) {
+      console.error("Loading screen elements not found!");
+  } else {
+      loadingManager.onStart = function ( url, itemsLoaded, itemsTotal ) {
+          console.log( 'Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+          loadingOverlay.style.display = 'flex'; // Ensure loading screen is visible
+      };
+
+      loadingManager.onLoad = function ( ) {
+          console.log( 'Loading complete!');
+          if (loadingOverlay) loadingOverlay.style.display = 'none'; // Hide loading screen
+          const initialOverlay = document.getElementById('overlay'); // Show the lobby overlay now
+          if (initialOverlay) initialOverlay.style.display = 'flex';
+      };
+
+      loadingManager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
+          console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+          const progress = (itemsLoaded / itemsTotal) * 100;
+          if (progressBar) progressBar.style.width = progress + '%';
+          if (progressText) progressText.innerText = Math.round(progress) + '%';
+      };
+
+      loadingManager.onError = function ( url ) {
+          console.error( 'There was an error loading ' + url );
+          if (progressText) progressText.innerText = "Yükleme Hatası!";
+          // Optionally, keep the loading screen visible or show an error message
+      };
+  }
+  // --- Loading Manager --- End
+
   // --- Client-side State ---
   let myClientId = null; // Store this client's socket ID
   let myPlayerStatus = null; // Store this client's status (WAITING, READY, PLAYING, SPECTATING)
@@ -109,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   scene.add(directionalLight);
 
   // --- Environment --- 
-  const textureLoader = new THREE.TextureLoader();
+  const textureLoader = new THREE.TextureLoader(loadingManager);
 
   // Grass Texture (as before)
   const grassTexture = textureLoader.load('assets/textures/grass.png');
@@ -183,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
   );
 
   // --- Skybox --- (as before)
-  const cubeTextureLoader = new THREE.CubeTextureLoader();
+  const cubeTextureLoader = new THREE.CubeTextureLoader(loadingManager);
   cubeTextureLoader.setPath('assets/skybox/');
   const skyboxTexture = cubeTextureLoader.load([
       'px.png', 'nx.png', 'py.png', 'nz.png', 'pz.png', 'nz.png'
@@ -653,9 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- Load Models --- 
-  const loader = new GLTFLoader();
+  const loader = new GLTFLoader(loadingManager);
   // ADDED: Audio Loader
-  const audioLoader = new THREE.AudioLoader();
+  const audioLoader = new THREE.AudioLoader(loadingManager);
 
   // Load Target Model
   loader.load(
