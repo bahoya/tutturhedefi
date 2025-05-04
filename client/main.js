@@ -242,9 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to create a fence section along the Z-axis
   function createFenceSection(length = 15, height = 0.8, postInterval = 2, woodColor = 0x8B4513) {
       const fenceGroup = new THREE.Group();
-      const postGeo = new THREE.BoxGeometry(0.1, height, 0.1);
+      const postGeo = new THREE.BoxGeometry(0.15, height, 0.15); // Increased thickness (X and Z)
       const postMat = new THREE.MeshLambertMaterial({ color: woodColor });
-      const plankGeo = new THREE.BoxGeometry(0.05, 0.1, postInterval); // Plank dimensions adjusted for Z-axis alignment
+      const plankGeo = new THREE.BoxGeometry(0.08, 0.1, postInterval); // Increased thickness (X), adjusted for Z-axis alignment
       const plankMat = new THREE.MeshLambertMaterial({ color: woodColor });
 
       const numSections = Math.ceil(length / postInterval);
@@ -276,8 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return fenceGroup;
   }
 
-  const fenceLength = 25; // How long the fences are along Z
-  const fenceOffset = 8; // How far from the center X line - DECREASED from 12
+  const fenceLength = 40; // How long the fences are along Z - INCREASED from 25
+  const fenceOffset = 6; // How far from the center X line - DECREASED from 8
   const fenceStartZ = 15; // Start Z position - Set to 15 (was 30)
   const fenceYPos = 3.5; // Base height on the ground - RAISED from 2.0
   const fenceHeight = 1.5; // NEW variable for fence height
@@ -834,8 +834,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
            // 3. Create Projectile Mesh at Start Position
            const projectileSpeed = 60;
-           const projectileGeo = new THREE.SphereGeometry(0.05, 8, 8);
-           const projectileMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+           const projectileGeo = new THREE.SphereGeometry(0.04, 8, 8); // Reduced radius from 0.05
+           const projectileMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Changed color to black
            const projectileMesh = new THREE.Mesh(projectileGeo, projectileMat);
            projectileMesh.position.copy(startPosition); // Use camera position
 
