@@ -124,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let firstClickLocked = false; 
   renderer.domElement.addEventListener('click', () => {
        // Request lock ONLY on first click when game/player is PLAYING and not already locked
-       if (!firstClickLocked && currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && document.pointerLockElement !== document.body) {
-           console.log("[Client] First canvas click while PLAYING. Requesting pointer lock...");
-           document.body.requestPointerLock();
+       if (!firstClickLocked && currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && document.pointerLockElement !== renderer.domElement) {
+           console.log("[Client] First canvas click while PLAYING. Requesting pointer lock on canvas...");
+           renderer.domElement.requestPointerLock();
            firstClickLocked = true; // Set flag so subsequent clicks don't re-request
            // Hide pause menu if it was visible (e.g., after ESC)
            pauseOverlay.style.display = 'none';
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (myPlayerStatus === 'PLAYING') {
                  const turnText = myTurn ? `Sıra Sende (${shotsLeft} atış)` : `Sıra: ${currentTurnUsername} (${shotsLeft} atış)`;
                  gameStatusDiv.innerText = turnText;
-                 crosshairDiv.style.display = document.pointerLockElement === document.body ? 'block' : 'none';
+                 crosshairDiv.style.display = document.pointerLockElement === renderer.domElement ? 'block' : 'none';
              } else if (myPlayerStatus === 'SPECTATING') {
                  gameStatusDiv.innerText = `İzleyici - Sıra: ${currentTurnUsername}`;
             }
@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
              joinBtn.style.display = 'none';
         }
          updateLobbyUI(data.lobbyPlayers);
-        if (document.pointerLockElement === document.body) document.exitPointerLock();
+        if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
         // Clear visuals (already handled in previous version)
     } else if (currentGameState === 'PLAYING') {
         console.log("[Client] State is PLAYING. Set game UI visible. Click canvas to lock pointer.");
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
             finalScoresHtml += `<div>${p.username}: ${p.score}${highlight}</div>`;
         });
         gameOverScoresDiv.innerHTML = finalScoresHtml;
-        if (document.pointerLockElement === document.body) document.exitPointerLock();
+        if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
         // Clear visuals (already handled)
     }
     // --- End UI Visibility --- 
@@ -671,10 +671,10 @@ document.addEventListener('DOMContentLoaded', () => {
    resumeBtn.addEventListener('click', () => {
        console.log("[Client] Resume button clicked.");
        if (currentGameState === 'PLAYING') {
-           console.log("[Client] Game is PLAYING. Hiding pause overlay and requesting lock.");
+           console.log("[Client] Game is PLAYING. Hiding pause overlay and requesting lock on canvas...");
            pauseOverlay.style.display = 'none';
            setGameUIVisibility(true); // Show game UI again
-           document.body.requestPointerLock();
+           renderer.domElement.requestPointerLock();
            firstClickLocked = true; // Ensure subsequent canvas clicks don't re-request
        } else {
            console.log(`[Client] Resume ignored: Game state is ${currentGameState}`);
@@ -746,8 +746,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const aimRaycaster = new THREE.Raycaster();
 
   window.addEventListener('click', (event) => {
-      console.log(`[Client] Click detected. Pointer locked: ${document.pointerLockElement === document.body}, State: ${currentGameState}, Status: ${myPlayerStatus}, Turn: ${myTurn}`); // <<< Added Log
-      if (document.pointerLockElement === document.body && currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && myTurn) {
+      console.log(`[Client] Click detected. Pointer locked: ${document.pointerLockElement === renderer.domElement}, State: ${currentGameState}, Status: ${myPlayerStatus}, Turn: ${myTurn}`); // <<< Check renderer.domElement
+      if (document.pointerLockElement === renderer.domElement && currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING' && myTurn) {
 
            console.log("Firing shot!");
 
@@ -843,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateCameraRotation(event) {
         // Check if pointer is actually locked when this is called
-        if (document.pointerLockElement !== document.body) {
+        if (document.pointerLockElement !== renderer.domElement) {
             console.warn("[Client] updateCameraRotation called but pointer is not locked!");
             return; // Don't rotate if not locked
         }
@@ -862,18 +862,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('pointerlockchange', () => {
-        if (document.pointerLockElement === document.body) {
-            console.log('[Client] Pointer Locked. Adding mousemove listener.');
+        console.log("[Client] Pointer Lock Change triggered."); // Log event trigger
+        if (document.pointerLockElement === renderer.domElement) {
+            console.log('[Client] Pointer Locked. (document.pointerLockElement === renderer.domElement is TRUE)');
             pauseOverlay.style.display = 'none';
             // Ensure game UI is visible when lock is acquired during PLAYING state
             if (currentGameState === 'PLAYING') {
+                console.log('[Client] Game state is PLAYING, ensuring UI is visible.');
                 setGameUIVisibility(true);
             }
+            console.log('[Client] Adding mousemove listener for updateCameraRotation...');
             document.addEventListener("mousemove", updateCameraRotation, false);
         } else {
             // Pointer unlocked
-            console.log('[Client] Pointer Unlocked. Removing mousemove listener.');
+            console.log('[Client] Pointer Unlocked. (document.pointerLockElement === renderer.domElement is FALSE)');
             document.removeEventListener("mousemove", updateCameraRotation, false);
+            console.log('[Client] Removed mousemove listener.');
             firstClickLocked = false; // Allow canvas click to re-lock pointer
             // Show pause menu only if game is PLAYING and player is PLAYING
             if (currentGameState === 'PLAYING' && myPlayerStatus === 'PLAYING') {
@@ -885,6 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 timerDiv.style.display = 'none';
             }
         }
+        console.log("[Client] Calling updateGameStatusDisplay after pointerlockchange.");
         updateGameStatusDisplay(); // Update crosshair visibility etc.
     });
 
