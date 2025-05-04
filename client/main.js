@@ -1023,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Hide the notification after a delay (e.g., 1.5 seconds)
       setTimeout(() => {
           turnNotificationDiv.classList.remove('show');
-      }, 1500); // Duration the notification is visible
+      }, 1000); // Duration the notification is visible
   }
 
   // Zoom controls

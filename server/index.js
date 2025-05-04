@@ -15,9 +15,6 @@ let playerTurnOrder = []; // Array of socket.ids of players in the current game 
 let lobbyPlayers = []; // Array of socket.ids of players waiting or ready (status WAITING/READY)
 let currentPlayerIndex = 0;
 let remainingShots = 3;
-const GAME_DURATION_MS = 90000; // Changed from 10000 to 90000 (90 seconds)
-let gameTimerInterval = null;
-let gameEndTime = 0;
 const MAX_TARGETS = 5;
 const SHOTS_PER_TURN = 3;
 const COUNTDOWN_SECONDS = 5;
@@ -25,6 +22,12 @@ let countdownTimerInterval = null;
 let countdownValue = COUNTDOWN_SECONDS;
 const MIN_SPAWN_DISTANCE_SQ = 4.0; // Minimum distance squared (2*2) between targets
 const MAX_SPAWN_ATTEMPTS = 10; // Max tries to find a free spot
+const TOTAL_ROUNDS = 5;
+const MAJOR_TURNS_PER_ROUND = 3;
+let currentRound = 1;
+let currentMajorTurn = 1;
+let turnTimerTimeout = null; // <<< ADDED: To store the turn timer timeout ID
+const TURN_DURATION_SECONDS = 15; // <<< ADDED: Duration for each player's turn
 
 // Raycaster for server-side hit detection
 const serverRaycaster = new THREE.Raycaster();
@@ -98,10 +101,10 @@ function getGameStateData() {
         currentTurnPlayerId,
         username: currentTurnPlayerId ? players[currentTurnPlayerId]?.username : null,
         remainingShots: gameState === 'PLAYING' ? remainingShots : null,
-        gameEndTime: gameState === 'PLAYING' ? gameEndTime : null,
-        // Send ALL player details (lobby, playing, spectators) separately?
-        // Or combine them and let client filter?
-        // Let's send combined for now.
+        currentRound: gameState === 'PLAYING' ? currentRound : null,
+        totalRounds: TOTAL_ROUNDS,
+        currentMajorTurn: gameState === 'PLAYING' ? currentMajorTurn : null,
+        totalMajorTurns: MAJOR_TURNS_PER_ROUND,
         allPlayers: players,
         lobbyPlayers: lobbyPlayerDetails, // For lobby UI
         playingPlayers: playingPlayerDetails // For scoreboard during play
@@ -153,7 +156,8 @@ function startGame() {
     gameState = 'PLAYING';
     currentPlayerIndex = 0;
     remainingShots = SHOTS_PER_TURN;
-    gameEndTime = Date.now() + GAME_DURATION_MS;
+    currentRound = 1; // Initialize round
+    currentMajorTurn = 1; // Initialize major turn
     targets = []; // Clear existing targets
 
     // Set player statuses to PLAYING
@@ -161,27 +165,19 @@ function startGame() {
         if (players[id]) players[id].status = 'PLAYING';
     });
 
-    // Start game timer for duration
-    if (gameTimerInterval) clearInterval(gameTimerInterval);
-    gameTimerInterval = setInterval(() => {
-        if (Date.now() >= gameEndTime) {
-            endGame();
-        } 
-    }, 1000);
-
     // Spawn initial targets
     for(let i = 0; i < MAX_TARGETS; i++) spawnTarget();
 
     io.emit('gameStateUpdate', getGameStateData());
-    console.log("Game started. Current turn:", players[playerTurnOrder[currentPlayerIndex]]?.username);
+    console.log(`Game started. Round ${currentRound}/${TOTAL_ROUNDS}, Major Turn ${currentMajorTurn}/${MAJOR_TURNS_PER_ROUND}. Current player:`, players[playerTurnOrder[currentPlayerIndex]]?.username);
 }
 
 // Function to end the game
 function endGame() {
     console.log("Game ending!");
     gameState = 'ENDED';
-    if (gameTimerInterval) clearInterval(gameTimerInterval); gameTimerInterval = null;
-    if (countdownTimerInterval) clearInterval(countdownTimerInterval); countdownTimerInterval = null; // Clear countdown too
+    if (turnTimerTimeout) clearTimeout(turnTimerTimeout); turnTimerTimeout = null; // Clear turn timer
+    if (countdownTimerInterval) clearInterval(countdownTimerInterval); countdownTimerInterval = null; // Clear countdown if active
     targets = [];
     io.emit('targetUpdate', targets);
 
@@ -199,24 +195,62 @@ function endGame() {
     console.log("Game ended. Final scores:", players);
 }
 
-// Function to switch to the next player's turn
+// Function to switch to the next player's turn (handles minor turns, major turns, and rounds)
 function nextTurn() {
-    if (playerTurnOrder.length === 0) {
-         console.log("No players left, ending game.");
-         endGame(); // Or handle differently if desired
-         return;
+    // Clear any existing timer for the previous player
+    if (turnTimerTimeout) clearTimeout(turnTimerTimeout); turnTimerTimeout = null;
+
+    if (gameState !== 'PLAYING' || playerTurnOrder.length === 0) {
+        console.log("nextTurn called inappropriately, game not playing or no players.");
+        return;
     }
+
     currentPlayerIndex = (currentPlayerIndex + 1) % playerTurnOrder.length;
-    remainingShots = SHOTS_PER_TURN;
-    console.log("Next turn:", players[playerTurnOrder[currentPlayerIndex]]?.username);
+    remainingShots = SHOTS_PER_TURN; // Reset shots for the next minor turn
+
+    // Check if a full cycle of players (minor turn) is complete
+    if (currentPlayerIndex === 0) {
+        currentMajorTurn++;
+        console.log(`--- All players completed minor turn. Starting Major Turn ${currentMajorTurn}/${MAJOR_TURNS_PER_ROUND} ---`);
+
+        // Check if a full round is complete
+        if (currentMajorTurn > MAJOR_TURNS_PER_ROUND) {
+            currentRound++;
+            currentMajorTurn = 1; // Reset major turn for new round
+            console.log(`====== Round ${currentRound - 1} Complete! Starting Round ${currentRound}/${TOTAL_ROUNDS} ======`);
+
+            // Check if the game ended
+            if (currentRound > TOTAL_ROUNDS) {
+                console.log("########## Game Over! All rounds completed. ##########");
+                endGame();
+                return; // Stop further processing
+            }
+             // Optional: Add logic here for things to happen at the start of a new round
+        }
+    }
+
+    const nextPlayerId = playerTurnOrder[currentPlayerIndex];
+    console.log(`Next minor turn: Player ${players[nextPlayerId]?.username} (${remainingShots} shots). Round ${currentRound}/${TOTAL_ROUNDS}, Major Turn ${currentMajorTurn}/${MAJOR_TURNS_PER_ROUND}.`);
     io.emit('gameStateUpdate', getGameStateData());
+
+    // Start timer for the new player's turn
+    const currentTurnPlayerIdForTimeout = nextPlayerId; // Capture current player ID for the timeout check
+    turnTimerTimeout = setTimeout(() => {
+        // Check if game is still playing and if it's STILL this player's turn
+        if (gameState === 'PLAYING' && playerTurnOrder.length > 0 && playerTurnOrder[currentPlayerIndex] === currentTurnPlayerIdForTimeout) {
+            console.log(`[Server] Turn timed out for ${players[currentTurnPlayerIdForTimeout]?.username}. Forcing next turn.`);
+            // Optionally, send feedback to the timed-out player?
+            io.to(currentTurnPlayerIdForTimeout).emit('feedback', { message: "Süren doldu!" });
+            nextTurn(); // Force the turn change
+        }
+    }, TURN_DURATION_SECONDS * 1000);
 }
 
 // Function to reset the game (called on restart request or auto-reset)
 function resetGame() {
     console.log("[Server] Resetting game state requested.");
     gameState = 'WAITING';
-    if (gameTimerInterval) clearInterval(gameTimerInterval); gameTimerInterval = null;
+    if (turnTimerTimeout) clearTimeout(turnTimerTimeout); turnTimerTimeout = null; // Clear turn timer
     if (countdownTimerInterval) clearInterval(countdownTimerInterval); countdownTimerInterval = null;
     targets = [];
     // Clear player scores and set status to WAITING for ALL players
@@ -231,7 +265,9 @@ function resetGame() {
     playerTurnOrder = [];
     currentPlayerIndex = 0;
     remainingShots = SHOTS_PER_TURN;
-    gameEndTime = 0;
+    // Reset round/turn counters
+    currentRound = 1;
+    currentMajorTurn = 1;
 
     io.emit('targetUpdate', targets);
     console.log("[Server] Game reset complete. Emitting gameStateUpdate.");
@@ -284,6 +320,8 @@ io.on('connection', (socket) => {
         return socket.emit('feedback', { message: "Atış sırası sizde değil veya oyun aktif değil!" }); // "Not your turn or game not active!"
     }
     if (remainingShots <= 0) {
+        // This shouldn't normally happen if turn timer works, but good safeguard
+        console.log(`[Server] shotFired received from ${players[socket.id]?.username} but remainingShots is already <= 0.`);
         return socket.emit('feedback', { message: "Atış hakkınız bitti!" }); // "Out of shots!"
     }
 
@@ -296,7 +334,8 @@ io.on('connection', (socket) => {
 
     // Check if turn ends
     if (remainingShots <= 0) {
-        console.log(`[Server] Turn ended for ${playerName}. Calling nextTurn.`);
+        console.log(`[Server] Turn ended for ${playerName} (used all shots). Calling nextTurn.`);
+        if (turnTimerTimeout) clearTimeout(turnTimerTimeout); turnTimerTimeout = null; // Clear timer as turn completed normally
         nextTurn(); // Switch to next player
     } else {
         // Only update remaining shots for the current player (and everyone for UI update)
@@ -375,7 +414,15 @@ io.on('connection', (socket) => {
 
     const wasInLobby = lobbyPlayers.includes(socket.id);
     const wasPlaying = playerTurnOrder.includes(socket.id);
+    const isCurrentTurn = wasPlaying && socket.id === playerTurnOrder[currentPlayerIndex]; // Check if it was their turn
     const username = disconnectedPlayer.username || 'Unknown';
+
+    // Clear turn timer if the disconnecting player was the current player
+    if (isCurrentTurn && turnTimerTimeout) {
+        console.log(`[Server] Clearing turn timer for disconnecting player ${username}.`);
+        clearTimeout(turnTimerTimeout);
+        turnTimerTimeout = null;
+    }
 
     // Remove from relevant list
     if (wasInLobby) {
@@ -397,8 +444,9 @@ io.on('connection', (socket) => {
         if (playerIndex < currentPlayerIndex) currentPlayerIndex--;
         if (currentPlayerIndex >= playerTurnOrder.length) currentPlayerIndex = 0;
         // If it was their turn, advance turn (as before)
-        if (playerIndex === currentPlayerIndex && playerTurnOrder.length > 0) { // Need to re-check index
-             console.log(`It was ${username}'s turn. Advancing turn.`);
+        if (isCurrentTurn && playerTurnOrder.length > 0) { // Use isCurrentTurn flag
+             console.log(`It was ${username}'s turn. Advancing turn due to disconnect.`);
+             // Note: nextTurn() will clear and reset the timer for the *next* player
              nextTurn();
         }
     } else {
