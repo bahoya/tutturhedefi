@@ -97,6 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let backgroundMusic = null;
   let shootSound = null;
   let hitSound = null;
+  // Zoom variables
+  let isZooming = false;
+  const defaultFov = 75;
+  const zoomedFov = 30;
+  const zoomSpeed = 5.0; // Adjust for faster/slower zoom animation
 
   // --- Three.js Setup ---
   console.log("Setting up Three.js...");
@@ -947,7 +952,14 @@ document.addEventListener('DOMContentLoaded', () => {
            }
     }
 
-    // 2. Render scene
+    // 2. Update Camera FOV for Zoom
+    const targetFov = isZooming ? zoomedFov : defaultFov;
+    if (Math.abs(camera.fov - targetFov) > 0.01) { // Only update if needed
+        camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, zoomSpeed * delta);
+        camera.updateProjectionMatrix(); // IMPORTANT: Update matrix after FOV change
+    }
+
+    // 3. Render scene
     renderer.render(scene, camera);
   }
 
@@ -987,5 +999,18 @@ document.addEventListener('DOMContentLoaded', () => {
           turnNotificationDiv.classList.remove('show');
       }, 1500); // Duration the notification is visible
   }
+
+  // Zoom controls
+  document.addEventListener('keydown', (event) => {
+      if (event.key === 'Control') {
+          isZooming = true;
+      }
+  });
+
+  document.addEventListener('keyup', (event) => {
+      if (event.key === 'Control') {
+          isZooming = false;
+      }
+  });
 
 }); // End of DOMContentLoaded listener 
