@@ -212,8 +212,22 @@ canvas {
 }
 
 #timer {
-    top: 15px;
-    right: 15px;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#turnInfo {
+    position: absolute;
+    top: 40px; /* Timer'ın altına yerleştir */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: bold;
+    /* İsteğe bağlı: text-align: center; */
 }
 
 #crosshair {

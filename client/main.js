@@ -33,8 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const readyBtn = document.getElementById('readyBtn'); // Ready button
   const countdownDisplayDiv = document.getElementById('countdownDisplay'); // Countdown text
   const turnNotificationDiv = document.getElementById('turnNotification'); // <<< Get notification element
+  const turnInfoDiv = document.getElementById('turnInfo'); // <<< Get turn info element
 
-  if (!overlay || !usernameInput || !joinBtn || !scoreboardDiv || !crosshairDiv || !gameStatusDiv || !timerDiv || !pauseOverlay || !resumeBtn || !gameOverOverlay || !gameOverScoresDiv || !playAgainBtn || !lobbyInfoDiv || !playerListUl || !readyBtn || !countdownDisplayDiv || !turnNotificationDiv) {
+  if (!overlay || !usernameInput || !joinBtn || !scoreboardDiv || !crosshairDiv || !gameStatusDiv || !timerDiv || !pauseOverlay || !resumeBtn || !gameOverOverlay || !gameOverScoresDiv || !playAgainBtn || !lobbyInfoDiv || !playerListUl || !readyBtn || !countdownDisplayDiv || !turnNotificationDiv || !turnInfoDiv) {
     console.error("Required DOM elements not found! Check index.html.");
     return;
   }
@@ -355,9 +356,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const now = Date.now();
       const remainingMs = Math.max(0, gameEndTime - now);
       const remainingSeconds = Math.floor(remainingMs / 1000);
-      const minutes = Math.floor(remainingSeconds / 60);
-      const seconds = remainingSeconds % 60;
-      timerDiv.innerText = `Süre: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      // Check if remainingSeconds is a valid number
+      if (isNaN(remainingSeconds) || !isFinite(remainingSeconds)) {
+        timerDiv.innerText = 'Süre: -:--'; // Show placeholder if time is invalid
+      } else {
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        timerDiv.innerText = `Süre: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
 
       if (remainingMs === 0 && gameTimerInterval) {
            clearInterval(gameTimerInterval);
@@ -368,7 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to update Game Status Display (Handles spectating)
   function updateGameStatusDisplay() {
        crosshairDiv.style.display = 'none'; // Default hide
-       gameStatusDiv.innerText = '-'; // Default text
+       gameStatusDiv.innerText = '-'; // Default text (will be overridden below)
+       turnInfoDiv.innerText = ''; // Clear turn info by default
 
        if (currentGameState === 'WAITING') {
            gameStatusDiv.innerText = 'Lobide bekleniyor...';
@@ -377,10 +385,13 @@ document.addEventListener('DOMContentLoaded', () => {
        } else if (currentGameState === 'PLAYING') {
             if (myPlayerStatus === 'PLAYING') {
                  const turnText = myTurn ? `Sıra Sende (${shotsLeft} atış)` : `Sıra: ${currentTurnUsername} (${shotsLeft} atış)`;
-                 gameStatusDiv.innerText = turnText;
+                 // Move turn text to its own div
+                 turnInfoDiv.innerText = turnText;
+                 gameStatusDiv.innerText = ''; // Clear general status when it's turn info time
                  crosshairDiv.style.display = document.pointerLockElement === renderer.domElement ? 'block' : 'none';
              } else if (myPlayerStatus === 'SPECTATING') {
-                 gameStatusDiv.innerText = `İzleyici - Sıra: ${currentTurnUsername}`;
+                 gameStatusDiv.innerText = 'İzleyici'; // Simpler spectator status
+                 turnInfoDiv.innerText = `Sıra: ${currentTurnUsername}`; // Show whose turn it is
             }
        } else if (currentGameState === 'ENDED') {
            gameStatusDiv.innerText = 'Oyun Bitti!';
@@ -394,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
       scoreboardDiv.style.display = display;
       gameStatusDiv.style.display = display;
       timerDiv.style.display = display;
+      turnInfoDiv.style.display = display; // <<< Add turnInfoDiv
       // Crosshair is handled in updateGameStatusDisplay based on pointer lock
   }
 
@@ -874,6 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 scoreboardDiv.style.display = 'none';
                 gameStatusDiv.style.display = 'none';
                 timerDiv.style.display = 'none';
+                turnInfoDiv.style.display = 'none'; // <<< Hide turnInfoDiv on pause
             }
         }
         console.log("[Client] Calling updateGameStatusDisplay after pointerlockchange.");
